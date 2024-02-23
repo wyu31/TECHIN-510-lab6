@@ -10,8 +10,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 st.set_page_config(
-    page_title="Chat with the PDF",
-    page_icon="🦙",
+    page_title="AI Resume Feedback Bot",
+    page_icon="📄",
     layout="centered",
     initial_sidebar_state="auto",
     menu_items=None,
@@ -19,11 +19,12 @@ st.set_page_config(
 
 if "messages" not in st.session_state.keys():  # Initialize the chat messages history
     st.session_state.messages = [
-        {"role": "assistant", "content": "Ask me a question about your document!"}
+        {"role": "assistant", "content": "Please enter a job description and upload a resume to get feedback!"}
     ]
 
-uploaded_file = st.file_uploader("Upload a file")
-if uploaded_file:
+job_description_text = st.text_area("Paste Job Description Here", height=300)
+uploaded_file = st.file_uploader("Upload Resume")
+if job_description_text and uploaded_file:
     bytes_data = uploaded_file.read()
     with NamedTemporaryFile(delete=False) as tmp:  # open a named temporary file
         tmp.write(bytes_data)  # write data from the uploaded file into it
@@ -37,7 +38,12 @@ if uploaded_file:
                 base_url=os.getenv("OPENAI_API_BASE"),
                 model="gpt-3.5-turbo",
                 temperature=0.0,
-                system_prompt="You are an expert on the content of the document, provide detailed answers to the questions. Use the document to support your answers.",
+                system_prompt=f'''
+                You are an experienced recruitment expert.
+                A job seeker has submitted a resume for a position with the following job description:
+                "{job_description_text}"
+                Based on the resume submitted, provide detailed feedback and modifications to make it more relevant to the job description.
+                '''
             )
             index = VectorStoreIndex.from_documents(docs)
     os.remove(tmp.name)  # remove temp file
@@ -48,7 +54,7 @@ if uploaded_file:
         )
 
 if prompt := st.chat_input(
-    "Your question"
+    "Detailed Modification Requirements"
 ):  # Prompt for user input and save to chat history
     st.session_state.messages.append({"role": "user", "content": prompt})
 
