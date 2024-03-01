@@ -5,6 +5,7 @@ import streamlit as st
 from llama_index.core import VectorStoreIndex
 from llama_index.llms.openai import OpenAI
 from llama_index.readers.file import PDFReader
+from streamlit_js_eval import streamlit_js_eval
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -36,7 +37,7 @@ if job_description_text and uploaded_file:
             llm = OpenAI(
                 api_key=os.getenv("OPENAI_API_KEY"),
                 base_url=os.getenv("OPENAI_API_BASE"),
-                model="gpt-3.5-turbo",
+                model="gpt-3.5-turbo-0125",
                 temperature=0.0,
                 system_prompt=f'''
                 You are an experienced recruitment expert.
@@ -53,20 +54,15 @@ if job_description_text and uploaded_file:
             chat_mode="condense_question", verbose=False, llm=llm
         )
 
-if prompt := st.chat_input(
-    "Detailed Modification Requirements"
-):  # Prompt for user input and save to chat history
-    st.session_state.messages.append({"role": "user", "content": prompt})
+is_magic = st.button("🪄 Magic_Rewrite Resume")
+if is_magic:
+    prompt ='''
+    Please modify the resume based on the job description.
+    Please point out which specifc part can be converted into a more related description.
+    '''
+    response = st.session_state.chat_engine.stream_chat(prompt)
+    st.write_stream(response.response_gen)
 
-for message in st.session_state.messages:  # Display the prior chat messages
-    with st.chat_message(message["role"]):
-        st.write(message["content"])
-
-# If last message is not from assistant, generate a new response
-if st.session_state.messages[-1]["role"] != "assistant":
-    with st.chat_message("assistant"):
-        with st.spinner("Thinking..."):
-            response = st.session_state.chat_engine.stream_chat(prompt)
-            st.write_stream(response.response_gen)
-            message = {"role": "assistant", "content": response.response}
-            st.session_state.messages.append(message)  # Add response to message history
+is_clear = st.button("🧹 Clear_Reload Page")
+if is_clear:
+    streamlit_js_eval(js_expressions="parent.window.location.reload()")
